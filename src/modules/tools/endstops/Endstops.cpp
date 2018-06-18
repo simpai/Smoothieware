@@ -57,6 +57,7 @@ enum DEFNS {MIN_PIN, MAX_PIN, MAX_TRAVEL, FAST_RATE, SLOW_RATE, RETRACT, DIRECTI
 #define delta_homing_checksum            CHECKSUM("delta_homing")
 #define rdelta_homing_checksum           CHECKSUM("rdelta_homing")
 #define scara_homing_checksum            CHECKSUM("scara_homing")
+#define markforged_homing_checksum       CHECKSUM("markforged_homing")
 
 #define endstop_debounce_count_checksum  CHECKSUM("endstop_debounce_count")
 #define endstop_debounce_ms_checksum     CHECKSUM("endstop_debounce_ms")
@@ -389,6 +390,7 @@ void Endstops::get_global_configs()
     this->is_delta=  THEKERNEL->config->value(delta_homing_checksum)->by_default(false)->as_bool();
     this->is_rdelta= THEKERNEL->config->value(rdelta_homing_checksum)->by_default(false)->as_bool();
     this->is_scara=  THEKERNEL->config->value(scara_homing_checksum)->by_default(false)->as_bool();
+    this->is_markforged=  THEKERNEL->config->value(markforged_homing_checksum)->by_default(false)->as_bool();
 
     this->home_z_first= THEKERNEL->config->value(home_z_first_checksum)->by_default(false)->as_bool();
 
@@ -562,7 +564,7 @@ uint32_t Endstops::read_endstops(uint32_t dummy)
         int m= e.axis_index;
 
         // for corexy homing in X or Y we must only check the associated endstop, works as we only home one axis at a time for corexy
-        if(is_corexy && (m == X_AXIS || m == Y_AXIS) && !axis_to_home[m]) continue;
+        if((is_corexy || is_markforged) && (m == X_AXIS || m == Y_AXIS) && !axis_to_home[m]) continue;
 
         if(STEPPER[m]->is_moving()) {
             // if it is moving then we check the associated endstop, and debounce it
@@ -571,7 +573,7 @@ uint32_t Endstops::read_endstops(uint32_t dummy)
                     e.pin_info->debounce++;
 
                 } else {
-                    if(is_corexy && (m == X_AXIS || m == Y_AXIS)) {
+                    if((is_corexy || is_markforged) && (m == X_AXIS || m == Y_AXIS)) {
                         // corexy when moving in X or Y we need to stop both the X and Y motors
                         STEPPER[X_AXIS]->stop_moving();
                         STEPPER[Y_AXIS]->stop_moving();
@@ -820,7 +822,7 @@ void Endstops::process_home_command(Gcode* gcode)
             if(THEKERNEL->is_halted()) break;
         }
 
-    } else if(is_corexy) {
+    } else if(is_corexy || is_markforged) {
         // corexy must home each axis individually
         for (auto &p : homing_axis) {
             if(haxis[p.axis_index]) {

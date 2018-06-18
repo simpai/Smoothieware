@@ -93,6 +93,7 @@ class Endstops : public Module{
             bool is_delta:1;
             bool is_rdelta:1;
             bool is_scara:1;
+            bool is_markforged:1;
             bool home_z_first:1;
             bool move_to_origin_after_home:1;
         };
